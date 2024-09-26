@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import axios from 'axios';
-
+import { FaVolumeUp } from 'react-icons/fa';
+import './App.css'; 
 function App() {
   const [query, setQuery] = useState('');
   const [response, setResponse] = useState('');
-  const [isSpeaking, setIsSpeaking] = useState(false); // State to track if speech is in progress
+  const [isSpeaking, setIsSpeaking] = useState(false);
 
   const handleSearch = async () => {
     try {
@@ -19,24 +20,14 @@ function App() {
 
   const handleSpeak = () => {
     if ('speechSynthesis' in window) {
-      // Cancel any existing speech to avoid repetition
       if (window.speechSynthesis.speaking) {
         window.speechSynthesis.cancel();
       }
-
-      // Create a new utterance
       const utterance = new SpeechSynthesisUtterance(response);
-
-      // Mark as speaking
       setIsSpeaking(true);
-
-      // Listen for when the speech ends
       utterance.onend = () => {
-        setIsSpeaking(false);  // Reset state when speaking ends
-        console.log('Speech has finished.');
+        setIsSpeaking(false);
       };
-
-      // Speak the text
       window.speechSynthesis.speak(utterance);
     } else {
       alert('Speech synthesis not supported in this browser.');
@@ -44,23 +35,39 @@ function App() {
   };
 
   return (
-    <div style={{ padding: '50px' }}>
-      <h1>GPT Search with Text-to-Speech</h1>
-      <input
-        type="text"
-        value={query}
-        onChange={(e) => setQuery(e.target.value)}
-        placeholder="Ask me anything"
-        style={{ width: '300px', marginRight: '10px' }}
-      />
-      <button onClick={handleSearch}>Search</button>
-      <div>
-        <p>{response}</p>
-        {/* Disable the speak button if speech is in progress */}
-        {response && (
-          <button onClick={handleSpeak} disabled={isSpeaking}>
-            {isSpeaking ? '🔊 Speaking...' : '🔊 Speak'}
+    <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+      <div className="bg-white p-10 rounded-lg shadow-lg max-w-lg w-full text-center">
+        <h1 className="text-3xl font-bold mb-6">GPT Search with Text-to-Speech</h1>
+
+        <div className="flex items-center space-x-4 mb-6">
+          <input
+            type="text"
+            className="flex-grow p-4 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500"
+            placeholder="Ask your question..."
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+          />
+          <button
+            onClick={handleSearch}
+            className="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-6 rounded-full transition duration-300"
+          >
+            Search
           </button>
+        </div>
+
+        {response && (
+          <div className="bg-gray-50 p-6 rounded-lg shadow-inner text-left">
+            <p className="text-lg mb-4">{response}</p>
+
+            <button
+              onClick={handleSpeak}
+              disabled={isSpeaking}
+              className="bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-4 rounded-full inline-flex items-center space-x-2 transition duration-300"
+            >
+              <FaVolumeUp />
+              <span>{isSpeaking ? 'Speaking...' : 'Speak'}</span>
+            </button>
+          </div>
         )}
       </div>
     </div>
