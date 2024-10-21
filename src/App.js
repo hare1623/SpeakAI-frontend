@@ -12,7 +12,7 @@ function App() {
   const handleSearch = useCallback(async () => {
     if (!query) return;
     try {
-      const res = await axios.post('http://localhost:5000/api/search', { query });
+      const res = await axios.post('https://speakai-backend.vercel.app/api/search', { query });
       setResponse(res.data.answer);
     } catch (err) {
       console.error(err);
