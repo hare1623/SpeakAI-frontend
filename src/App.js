@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import axios from 'axios';
 import { FaVolumeUp, FaMicrophone } from 'react-icons/fa';
 import './App.css';
@@ -8,6 +8,7 @@ function App() {
   const [response, setResponse] = useState('Hello! How can I assist you today?');
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isListening, setIsListening] = useState(false);
+  const searchTimeoutRef = useRef(null); // Ref for managing timeouts
 
   const handleSearch = useCallback(async () => {
     if (!query) return;
@@ -15,26 +16,24 @@ function App() {
       const res = await axios.post('https://speakai-backend.vercel.app/api/search', { query });
       setResponse(res.data.answer);
     } catch (err) {
-      console.error(err);
+      console.error('Error in search:', err);
     }
   }, [query]);
-
-  useEffect(() => {
-    if (query) {
-      handleSearch();
-    }
-  }, [query, handleSearch]);
 
   const handleSpeak = () => {
     if ('speechSynthesis' in window) {
       if (window.speechSynthesis.speaking) {
         window.speechSynthesis.cancel();
       }
+
       const utterance = new SpeechSynthesisUtterance(response);
       setIsSpeaking(true);
+
       utterance.onend = () => {
         setIsSpeaking(false);
+        console.log('Speech finished. Ready for new input.');
       };
+
       window.speechSynthesis.speak(utterance);
     } else {
       alert('Speech synthesis not supported in this browser.');
@@ -49,17 +48,21 @@ function App() {
       recognition.interimResults = false;
       recognition.maxAlternatives = 1;
 
-      recognition.onstart = () => {
-        setIsListening(true);
-      };
-
-      recognition.onend = () => {
-        setIsListening(false);
-      };
+      recognition.onstart = () => setIsListening(true);
+      recognition.onend = () => setIsListening(false);
 
       recognition.onresult = (event) => {
         const transcript = event.results[0][0].transcript;
         setQuery(transcript);
+
+        // Set a timeout to trigger the search automatically after 1.5 seconds
+        if (searchTimeoutRef.current) {
+          clearTimeout(searchTimeoutRef.current);
+        }
+        searchTimeoutRef.current = setTimeout(() => {
+          console.log('Triggering search automatically after 1.5 seconds...');
+          handleSearch();
+        }, 1500);
       };
 
       recognition.onerror = (event) => {
@@ -73,6 +76,10 @@ function App() {
     }
   };
 
+  const handleQueryChange = (e) => {
+    setQuery(e.target.value);
+  };
+
   return (
     <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
       <div className="bg-white p-6 md:p-10 rounded-lg shadow-lg max-w-full md:max-w-lg w-full text-center">
@@ -84,7 +91,7 @@ function App() {
             className="flex-grow p-4 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm w-full"
             placeholder="Ask your question..."
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            onChange={handleQueryChange}
           />
           <div className="flex space-x-2 w-full md:w-auto">
             <button
@@ -94,16 +101,17 @@ function App() {
               Search
             </button>
             <button
-  onClick={handleVoiceSearch}
-  className={`bg-yellow-500 hover:bg-yellow-600 text-white font-semibold py-3 px-4 rounded-full transition duration-300 shadow-lg focus:outline-none w-full md:w-auto flex justify-center items-center ${isListening ? 'opacity-50' : ''}`}
-  disabled={isListening}
->
-  <FaMicrophone className="text-lg" />
-</button>
+              onClick={handleVoiceSearch}
+              className={`bg-yellow-500 hover:bg-yellow-600 text-white font-semibold py-3 px-4 rounded-full transition duration-300 shadow-lg focus:outline-none w-full md:w-auto flex justify-center items-center ${
+                isListening ? 'opacity-50' : ''
+              }`}
+              disabled={isListening}
+            >
+              <FaMicrophone className="text-lg" />
+            </button>
           </div>
         </div>
 
-        {/* Display the response */}
         <div className="bg-gray-50 p-6 rounded-lg shadow-inner text-left w-full">
           <p className="text-lg mb-4">{response}</p>
           <button
