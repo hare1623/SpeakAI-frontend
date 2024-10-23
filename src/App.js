@@ -8,17 +8,16 @@ function App() {
   const [response, setResponse] = useState('Hello! How can I assist you today?');
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isListening, setIsListening] = useState(false);
-  const searchTimeoutRef = useRef(null); // Ref for managing timeouts
+  const searchTimeoutRef = useRef(null); // Ref to manage timeout
 
-  const handleSearch = useCallback(async () => {
-    if (!query) return;
+  const handleSearch = useCallback(async (searchQuery) => {
     try {
-      const res = await axios.post('https://speakai-backend.vercel.app/api/search', { query });
+      const res = await axios.post('https://speakai-backend.vercel.app/api/search', { query: searchQuery });
       setResponse(res.data.answer);
     } catch (err) {
       console.error('Error in search:', err);
     }
-  }, [query]);
+  }, []);
 
   const handleSpeak = () => {
     if ('speechSynthesis' in window) {
@@ -53,15 +52,15 @@ function App() {
 
       recognition.onresult = (event) => {
         const transcript = event.results[0][0].transcript;
-        setQuery(transcript);
+        setQuery(transcript); // Set the query immediately
 
-        // Set a timeout to trigger the search automatically after 1.5 seconds
+        // Clear existing timeout and trigger search after 1.5s delay
         if (searchTimeoutRef.current) {
           clearTimeout(searchTimeoutRef.current);
         }
         searchTimeoutRef.current = setTimeout(() => {
           console.log('Triggering search automatically after 1.5 seconds...');
-          handleSearch();
+          handleSearch(transcript); // Use the latest transcript directly
         }, 1500);
       };
 
@@ -77,7 +76,13 @@ function App() {
   };
 
   const handleQueryChange = (e) => {
-    setQuery(e.target.value);
+    const newQuery = e.target.value;
+    setQuery(newQuery);
+
+    // Optional: Clear any existing timeout for real-time input
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
   };
 
   return (
@@ -95,7 +100,7 @@ function App() {
           />
           <div className="flex space-x-2 w-full md:w-auto">
             <button
-              onClick={handleSearch}
+              onClick={() => handleSearch(query)} // Pass the current query directly
               className="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-3 px-4 md:px-6 rounded-full transition duration-300 shadow-lg focus:outline-none w-full md:w-auto"
             >
               Search
